@@ -2,9 +2,12 @@
 title: "MA678 Homework 6"
 author: "Yuchen Huang"
 date: "11/8/2022"
-output: pdf_document
-editor_options: 
-  markdown: 
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  markdown:
     wrap: 72
 ---
 
@@ -80,7 +83,7 @@ par(mfrow = c(3,3))
 
 ```{r}
 party <- NES |>
-    select(partyid7)|> na.omit()
+    dplyr::select(partyid7)|> na.omit()
 res <- data.frame(C1 = party - fitted(fit_polr)[,1]-3.5,
                   C2 = party - fitted(fit_polr)[,2]-3.5,
                   C3 = party - fitted(fit_polr)[,3]-3.5,
@@ -350,7 +353,19 @@ lines(years, predict[,3], col = "green")
     as ordinal.
 
 ```{r}
+pneumo2 <- data.frame(status = rep(pneumo$status, pneumo$Freq), year = rep(pneumo$year, pneumo$Freq))
+pneumo2$status <- ordered(pneumo2$status, levels=c("normal", "mild", "severe")) 
+library(MASS)
+omod <- polr(status ~ year, pneumo2)
+summary(omod)
 
+plot(years, props[1,], col="red", ylim=c(0,1))
+points(years, props[2,], col="blue")
+points(years, props[3,], col="green")
+fitted <- predict(omod, newdata=list(year=years), type="probs") 
+lines(years, fitted[,1], col="blue")
+lines(years, fitted[,2], col="red") 
+lines(years, fitted[,3], col="green")
 ```
 
 3.  Now treat the response variable as hierarchical with top level
@@ -359,11 +374,16 @@ lines(years, predict[,3], col = "green")
     moderate or severe case.
 
 ```{r}
+pneumo3<- data.frame(normal=pneumo[pneumo$status == "normal","Freq"], disease=pneumo[pneumo$status == "mild","Freq"]+pneumo[pneumo$status == "severe","Freq"], mild=pneumo[pneumo$status == "mild","Freq"], severe=pneumo[pneumo$status == "severe","Freq"], year=pneumo[pneumo$status == "mild","year"])
+binmodw <- glm(cbind(disease,normal) ~ year, data=pneumo3,family=binomial) 
+binmodd <- glm(cbind(severe, mild) ~ year, data=pneumo3, family = binomial)
 
+predict(binmodw,data=pneumo3,type="response")
 ```
 
 4.  Compare the three analyses.
 
 ```{r}
-
+predict(fit, newdata=list(years=25), type="probs")
+predict(omod, newdata=list(year=25), type="probs")
 ```
